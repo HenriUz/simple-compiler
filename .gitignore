@@ -1,0 +1,12 @@
+# PDFs.
+*.pdf
+
+# IDEs.
+.vscode
+.idea
+
+# Bison, Flex, and program.
+*.output
+*.tab*
+*.yy*
+compiler
