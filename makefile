@@ -1,7 +1,16 @@
-all:
+all: compiler
+
+bison.tab.c bison.tab.h: bison.y
 	bison --report=all --color=[always] --warning=all -d -Wcounterexamples bison.y
+
+lex.yy.x: lexical.lex bison.tab.h
 	flex lexical.lex
-	gcc lex.yy.c bison.tab.c -o compiler
+
+compiler: bison.tab.c lex.yy.c ast.o
+	gcc -o compiler bison.tab.c lex.yy.c ast.o -lfl
+
+ast.o: ast.c ast.h
+	gcc -c ast.c
 
 clean:
-	rm -f lex.yy.c bison.output bison.tab.* compiler
+	rm -f *.o lex.yy.c bison.output bison.tab.* compiler

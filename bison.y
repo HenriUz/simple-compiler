@@ -1,19 +1,14 @@
-/*
-Ideia:
-
-As variáveis serão salvas em uma lista encadeada (mais simples de implementar se for similar a pilha), no qual o nó da lista contém o ponteiro para o próximo, um ponteiro para a estrutura "Variable".
-*/
-
 %{
+    #include "ast.h"
     #include "types.h"
 
-    typedef struct Node {
+    typedef struct LNode {
         Variable *variable;
-        struct Node *next;
-    } Node;
+        struct LNode *next;
+    } LNode;
 
     typedef struct List {
-        Node *start;
+        LNode *start;
     } List;
 
 
@@ -26,7 +21,6 @@ As variáveis serão salvas em uma lista encadeada (mais simples de implementar 
 
     /* Funções para reduzir as linhas de código dentro da gramática. */
     Variable *create(char *name, Types type, int size);
-    void change_untypeds(Types type);
 
     int yylex(void);
     void yyerror(const char *s);
@@ -39,6 +33,8 @@ As variáveis serão salvas em uma lista encadeada (mais simples de implementar 
     double real;
     char *cadeia;
 
+    Node *node;
+
     Bool tbool;
     Operators op;
     Types type;
@@ -48,11 +44,13 @@ As variáveis serão salvas em uma lista encadeada (mais simples de implementar 
 
 /* Definição dos não-terminais. */
 
-%nterm <real> expression lower middle high
-%nterm <tbool> complex relational high_relational
+%type <node> start program statements names algorithm
 
-%nterm <type> type
-%nterm <op> r_operators b_operators
+%type <real> expression lower middle high
+%type <tbool> complex relational high_relational
+
+%type <type> type
+%type <op> r_operators b_operators
 
 /* Definição dos terminais. */
 
@@ -71,34 +69,47 @@ As variáveis serão salvas em uma lista encadeada (mais simples de implementar 
 %%
 
 start:
-    PROGRAMA program FIMPROG;
+    PROGRAMA program FIMPROG
+    {
+        execute_node($2);
+        $$ = $2;
+    };
+
 program:
-    statements algorithm;
+    statements algorithm
+    {
+        $$ = join_blocks($1, $2);
+    };
 
 statements:
-    type names { change_untypeds($1); } statements
-    | type names { change_untypeds($1); };
+    type names statements {
+        change_untypeds($2->block.cmds, $2->block.count, $1);
+        $$ = join_blocks($2, $3);
+    }
+    | type names
+    {
+        change_untypeds($2->block.cmds, $2->block.count, $1);
+        $$ = $2;
+    };
+
 type:
     INTEIRO
     | REAL
     | LISTAINT
     | LISTAREAL;
+
 names:
-    VAR_NAME ',' {
-        Variable *v = create($1.name, T_UNTYPED, $1.length);
-        if (!v) {
-            yyerror("falha na alocação de memória");
-            YYABORT;
-        }
-        insert(v);
-    } names
-    | VAR_NAME {
-        Variable *v = create($1.name, T_UNTYPED, $1.length);
-        if (!v) {
-            yyerror("falha na alocação de memória");
-            YYABORT;
-        }
-        insert(v);
+    VAR_NAME ',' names
+    {
+        $$ = $3;
+        add_child($$, make_decl(T_UNTYPED, $1.name, $1.length));
+    }
+    | VAR_NAME
+    {
+        Node **cmds = (Node **)malloc(sizeof(Node *));
+        cmds[0] = make_decl(T_UNTYPED, $1.name, $1.length);
+
+        $$ = make_block(cmds, 1);
     };
 
 algorithm: commands algorithm
@@ -224,7 +235,7 @@ List *initialize() {
 void insert(Variable *data) {
     if (!variables) return;
 
-    Node *n = (Node *)malloc(sizeof(Node));
+    LNode *n = (LNode *)malloc(sizeof(LNode));
     if (!n) return;
 
     n->variable = data;
@@ -235,7 +246,7 @@ void insert(Variable *data) {
 Variable *search(char *name) {
     if (!variables) return NULL;
 
-    Node *n = variables->start;
+    LNode *n = variables->start;
     while (n && strcmp(n->variable->name, name) != 0) {
         n = n->next;
     }
@@ -248,7 +259,7 @@ void clean() {
     if (!variables) return;
 
     while (variables->start) {
-        Node *n = variables->start;
+        LNode *n = variables->start;
 
         if (n->variable) {
             free(n->variable->name);
@@ -277,14 +288,6 @@ Variable *create(char *name, Types type, int size) {
     v->data = NULL;
 
     return v;
-}
-
-void change_untypeds(Types type) {
-    Node *n = variables->start;
-    while (n && n->variable->type == T_UNTYPED) {
-        n->variable->type = type;
-        n = n->next;
-    }
 }
 
 /* Implementação das funções padrões. */
