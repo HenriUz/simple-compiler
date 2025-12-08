@@ -35,8 +35,7 @@
 
     Node *node;
 
-    Bool tbool;
-    Operators op;
+    RelOp op;
     Types type;
     Flex flex;
     Variable var;
@@ -44,10 +43,7 @@
 
 /* Definição dos não-terminais. */
 
-%type <node> start program statements names algorithm
-
-%type <real> expression lower middle high
-%type <tbool> complex relational high_relational
+%type <node> start program statements names algorithm commands assignment input input_vars output out_string if loop expression lower middle high complex relational high_relational
 
 %type <type> type
 %type <op> r_operators b_operators
@@ -60,7 +56,7 @@
 %token <real> N_REAL
 %token <cadeia> STRING
 
-%token <op> .NAO. .MAQ. .MAI. .MEQ. .MEI. .IGU. .DIF. .OU. .E.
+%token <op> NAO MAQ MAI MEQ MEI IGU DIF OU E
 %token <type> INTEIRO REAL LISTAINT LISTAREAL
 %token <flex> VAR_NAME
 
@@ -112,114 +108,193 @@ names:
         $$ = make_block(cmds, 1);
     };
 
-algorithm: commands algorithm
-         | commands
-         ;
-commands: assignment
-        | input
-        | output
-        | if
-        | loop
-        ;
-assignment: VAR_NAME ":=" expression ;
-input: LEIA names ;
-output: ESCREVA out_string ;
-out_string: VAR_NAME
-          | STRING
-          | VAR_NAME ',' STRING
-          | STRING ',' VAR_NAME
-          ;
-if: SE complex ENTAO algorithm FIMSE
-  | SE complex ENTAO algorithm SENAO algorithm FIMSE
-  ;
-loop: ENQUANTO complex FACA algorithm FIMENQ ;
-
-expression: lower { $$ = $1; };
-lower:
-    lower '+' middle { $$ = $1 + $3; }
-    | lower '-' middle { $$ = $1 - $3; }
-    | middle { $$ = $1; };
-middle:
-    middle '*' high { $$ = $1 * $3; }
-    | middle '/' high { $$ = $1 / $3; }
-    | high { $$ = $1; };
-high:
-    N_INT { $$ = $1; }
-    | N_REAL { $$ = $1; }
-    | VAR_NAME {
-        Variable *v = search($1.name);
-        if (!v) {
-            yyerror("uso de variável não declarada");
-            YYABORT;
-        }
-
-        if (v->initialized == FALSE) {
-            yyerror("uso de variável não inicializada");
-            YYABORT;
-        }
-
-        if (v->type == LISTAINT || v->type == LISTAREAL) {
-            if ($1.length < 0) {
-                yyerror("um vetor não pode ser usado em uma expressão, tente informar o indíce");
-                YYABORT;
-            } else {
-                $$ = ((double *)v->data)[$1.length];
-            }
-        } else {
-            $$ = *(double *)v->data;
-        }
+algorithm:
+    commands algorithm
+    {
+        $$ = join_blocks($1, $2);
     }
-    | '(' lower ')' { $$ = $2; };
+    | commands
+    {
+        $$ = $1;
+    };
+
+commands:
+    assignment
+    {
+        $$ = $1;
+    }
+    | input
+    {
+        $$ = $1;
+    }
+    | output
+    {
+        $$ = $1;
+    }
+    | if
+    {
+        $$ = $1;
+    }
+    | loop
+    {
+        $$ = $1
+    };
+
+assignment:
+    VAR_NAME ":=" expression
+    {
+        $$ = make_assign($3, make_var($1.name, $1.length));
+    };
+
+input:
+    LEIA input_vars
+    {
+        $$ = $2;
+    };
+
+input_vars:
+    VAR_NAME ',' input_vars
+    {
+        $$ = $3;
+        add_child($$, make_read(make_var($1.name, $1.length)));
+    }
+    | VAR_NAME
+    {
+        Node **cmds = (Node **)malloc(sizeof(Node *));
+        cmds[0] = make_read(make_var($1.name, $1.length));
+
+        $$ = make_block(cmds, 1);
+    };
+
+output:
+    ESCREVA out_string
+    {
+        $$ = $2;
+    };
+
+out_string:
+    VAR_NAME
+    {
+        $$ = make_write(NULL, make_var($1.name, $1.length));
+    }
+    | STRING
+    {
+        $$ = make_write($1, NULL);
+    }
+    | STRING ',' VAR_NAME
+    {
+        $$ = make_write($1, make_var($1.name, $1.length));
+    };
+
+if:
+    SE complex ENTAO algorithm FIMSE
+    {
+        $$ = make_if($2, $4, NULL);
+    }
+    | SE complex ENTAO algorithm SENAO algorithm FIMSE
+    {
+        $$ = make_if($2, $4, $6);
+    };
+
+loop:
+    ENQUANTO complex FACA algorithm FIMENQ
+    {
+        $$ = make_while($2, $4);
+    };
+
+expression:
+    lower
+    {
+        $$ = $1;
+    };
+
+lower:
+    lower '+' middle
+    {
+        $$ = make_binop(OP_ADD, $1, $3);
+    }
+    | lower '-' middle
+    {
+        $$ = make_binop(OP_SUB, $1, $3);
+    }
+    | middle
+    {
+        $$ = $1;
+    };
+
+middle:
+    middle '*' high
+    {
+        $$ = make_binop(OP_MUL, $1, $3);
+    }
+    | middle '/' high
+    {
+        $$ = make_binop(OP_DIV, $1, $3);
+    }
+    | high
+    {
+        $$ = $1;
+    };
+
+high:
+    N_INT
+    {
+        $$ = make_int($1);
+    }
+    | N_REAL
+    {
+        $$ = make_real($1);
+    }
+    | VAR_NAME
+    {
+        $$ = make_var($1.name, $1.length);
+    }
+    | '(' lower ')'
+    {
+        $$ = $2;
+    };
 
 complex:
-    relational b_operators high_relational {
-        switch($2) {
-            case OU:
-                $$ = $1 || $3;
-                break;
-            case E:
-            default:
-                $$ = $1 && $3;
-        }
+    relational b_operators high_relational
+    {
+        $$ = make_relop($2, $1, $3);
     }
-    | high_relational { $$ = $1; };
-relational:
-    expression r_operators expression {
-        switch($2) {
-            case MAQ:
-                $$ = $1 > $3 ? TRUE : FALSE;
-                break;
-            case MAI:
-                $$ = $1 >= $3 ? TRUE : FALSE;
-                break;
-            case MEQ:
-                $$ = $1 < $3 ? TRUE : FALSE;
-                break;
-            case MEI:
-                $$ = $1 <= $3 ? TRUE : FALSE;
-                break;
-            case IGU:
-                $$ = $1 == $3 ? TRUE : FALSE;
-                break;
-            case DIF:
-            default:
-                $$ = $1 != $3 ? TRUE : FALSE;
-        }
+    | high_relational
+    {
+        $$ = $1;
     };
+
+relational:
+    expression r_operators expression
+    {
+        $$ = make_relop($2, $1, $3);
+    };
+
 high_relational:
-    .NAO. '(' relational ')' { $$ = !$3; }
-    | '(' relational ')' { $$ = $2; }
-    | relational { $$ = $1; };
+    NAO '(' relational ')'
+    {
+        $$ = make_relop($1, $3 NULL);
+    }
+    | '(' relational ')'
+    {
+        $$ = $2;
+    }
+    | relational
+    {
+        $$ = $1;
+    };
+
 r_operators:
-    .MAQ.
-    | .MAI.
-    | .MEQ.
-    | .MEI.
-    | .IGU.
-    | .DIF.;
+    MAQ
+    | MAI
+    | MEQ
+    | MEI
+    | IGU
+    | DIF;
+
 b_operators:
-     .OU.
-    | .E.;
+    OU
+    | E;
 %%
 
 /* Implementação das funções auxiliares (declaradas no início do arquivo). */

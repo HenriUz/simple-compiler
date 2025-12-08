@@ -5,25 +5,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef enum {
-    FALSE,
-    TRUE,
-} Bool;
+/**
+ * @enum BinOp
+ *
+ * @brief Arithmetic operations.
+ */
+typedef enum BinOp {
+    OP_ADD, OP_SUB, OP_MUL, OP_DIV,
+} BinOp;
 
-/*
-Operadores para operações relacionais.
-*/
-typedef enum {
-    NAO,
-    MAQ,
-    MAI,
-    MEQ,
-    MEI,
-    IGU,
-    DIF,
-    OU,
-    E,
-} Operators;
+/**
+ * @enum RelOp
+ *
+ * @brief Relational and boolean operations.
+ */
+typedef enum RelOp {
+    R_MAQ, R_MAI, R_MEQ, R_MEI, R_IGU, R_DIF, R_NAO, R_OU, R_E,
+} RelOp;
 
 /*
 Tipos possíveis para as variáveis do programa.
@@ -42,7 +40,7 @@ Estrutura para representar uma variável. O dado só deve ser alocado quando for
 typedef struct {
     char *name;
     Types type;
-    Bool initialized; // Indica se a variável já foi inicializada.
+    int initialized; // Indica se a variável já foi inicializada.
     int size; // Utilizado apenas em casos de lista, pois representa o tamanho delas.
     void *data; // O dado em si.
 } Variable;

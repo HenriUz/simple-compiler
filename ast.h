@@ -14,31 +14,14 @@ typedef enum NodeType {
     NODE_ASSIGN,    // Atribuição: nome := expr.
     NODE_IF,        // Se condição then_block else_block.
     NODE_WHILE,     // While condição.
-    NODE_EXPR,      // Expressão.
     NODE_INT,       // Int.
     NODE_REAL,      // Real.
     NODE_VAR,       // Acesso a variável.
     NODE_BINOP,     // + - * /.
     NODE_RELOP,     // Operadores relacionais.
+    NODE_WRITE,
+    NODE_READ,
 } NodeType;
-
-/**
- * @enum BinOp
- *
- * @brief Arithmetic operations.
- */
-typedef enum BinOp {
-    OP_ADD, OP_SUB, OP_MUL, OP_DIV,
-} BinOp;
-
-/**
- * @enum RelOp
- *
- * @brief Relational operations.
- */
-typedef enum RelOp {
-    R_MAQ, R_MAI, R_MEQ, R_MEI, R_IGU, R_DIF,
-} RelOp;
 
 /**
  * @struct EvalResult
@@ -72,7 +55,7 @@ typedef struct Node {
         struct { Types vartype; char *name; int size; } decl;
 
         /* Assignment. */
-        struct { char *name; struct Node *expr; int index; } assign;
+        struct { struct Node *expr; struct Node *var; } assign;
 
         /* If. */
         struct { struct Node *cond; struct Node *then_block; struct Node *else_block; } ifnode;
@@ -84,14 +67,21 @@ typedef struct Node {
         int intval;
         double realval;
 
-        /* Variavle acess. */
-        struct { char *name; struct Node *index; } var;
+        /* Variable acess. */
+        struct { char *name; int index; } var;
 
         /* Binary op. */
         struct { BinOp op; struct Node *left; struct Node *right; } binop;
 
         /* Relational op. */
         struct { RelOp op; struct Node *left; struct Node *right; } relop;
+
+        /* Write. */
+        struct { char *string; struct Node *var } writenode;
+
+        /* Read. */
+        struct { struct Node *var; } readnode;
+
     };
 } Node;
 
@@ -150,13 +140,12 @@ Node *make_decl(Types t, const char *name, int size);
 /**
  * @brief Creates a node of type NODE_ASSIGN.
  *
- * @param name Variable name.
  * @param expr Node representing the expression that will result in the value of the variable.
- * @param index Variable index (used only if it is a vector type).
+ * @param var Node of type NODE_VAR.
  *
  * @return A pointer to the created node.
  */
-Node *make_assign(const char *name, Node *expr, int index);
+Node *make_assign(Node *expr, Node *var);
 
 /**
  * @brief Creates a node of type NODE_IF.
@@ -201,11 +190,11 @@ Node *make_real(double v);
  * @brief Creates a node of type NODE_VAR.
  *
  * @param name Variable name.
- * @param index Node representing the expression that will result in the index of the vector (if is a vector type).
+ * @param index Index of the vector (if is a vector type).
  *
  * @return A pointer to the created node.
  */
-Node *make_var(const char *name, Node *index);
+Node *make_var(const char *name, int index);
 
 /**
  * @brief Creates a node of type NODE_BINOP.
@@ -228,6 +217,25 @@ Node *make_binop(BinOp op, Node *left, Node *right);
  * @return A pointer to the created node.
  */
 Node *make_relop(RelOp op, Node *left, Node *right);
+
+/**
+ * @brief Creates a node of type NODE_WRITE.
+ *
+ * @param string String to be printed.
+ * @param var Node of type NODE_VAR.
+ *
+ * @return A pointer to the created node.
+ */
+Node *make_write(const char *string, Node *var);
+
+/**
+ * @brief Creates a node of type NODE_READ.
+ *
+ * @param name Node of type NODE_VAR.
+ *
+ * @return A pointer to the created node.
+ */
+Node *make_read(Node *var);
 
 /**
  * @brief Recursively frees memory.

@@ -18,7 +18,7 @@ extern Variable *create(char *name, Types type, int size);
 static Node *alloc_node(NodeType t) {
     Node *n = (Node *)malloc(sizeof(Node));
     if (!n) {
-        perror("malloc");
+        perror("malloc() failed");
         exit(1);
     }
 
@@ -32,7 +32,10 @@ void add_child(Node *n, Node *child) {
     if (n->type != NODE_BLOCK) return;
 
     Node **new_cmds = (Node **)malloc(sizeof(Node *) * (n->block.count + 1));
-    if (!new_cmds) return;
+    if (!new_cmds) {
+        perror("malloc() failed");
+        exit(1);
+    }
 
     memcpy(new_cmds, n->block.cmds, sizeof(Node *) * n->block.count);
     new_cmds[(n->block.count)++] = child;
@@ -53,14 +56,14 @@ void change_untypeds(Node **cmds, int length, Types type) {
 
 Node *join_blocks(Node *n1, Node *n2) {
     if (!n1 || !n2 || n1->type != NODE_BLOCK || n2->type != NODE_BLOCK) {
-        fprintf(stderr, "join_blocks(): nós inválidos.");
+        fprintf(stderr, "join_blocks(): invalid nodes.");
         exit(1);
     }
 
     int count = n1->block.count + n2->block.count;
     Node **new_cmds = (Node **)malloc(sizeof(Node *) * count);
     if (!new_cmds) {
-        perror("malloc");
+        perror("malloc() failed");
         exit(1);
     }
 
@@ -91,11 +94,15 @@ Node *make_decl(Types t, const char *name, int size) {
     return n;
 }
 
-Node *make_assign(const char *name, Node *expr, int index) {
+Node *make_assign(Node *expr, Node *var) {
+    if (!var || var->type != NODE_VAR) {
+        fprintf(stderr, "make_assing(): incompatible node type.\n");
+        exit(1);
+    }
+
     Node *n = alloc_node(NODE_ASSIGN);
-    n->assign.name = strdup(name);
     n->assign.expr = expr;
-    n->assign.index = index;
+    n->assign.var = var;
     return n;
 }
 
@@ -126,7 +133,7 @@ Node *make_real(double v) {
     return n;
 }
 
-Node *make_var(const char *name, Node *index) {
+Node *make_var(const char *name, int index) {
     Node *n = alloc_node(NODE_VAR);
     n->var.name = strdup(name);
     n->var.index = index;
@@ -149,6 +156,19 @@ Node *make_relop(RelOp op, Node *left, Node *right) {
     return n;
 }
 
+Node *make_write(const char *string, Node *var) {
+    Node *n = alloc_node(NODE_WRITE);
+    n->writenode.string = strdup(string);
+    n->writenode.var = var;
+    return n;
+}
+
+Node *make_read(Node *var) {
+    Node *n = alloc_node(NODE_READ);
+    n->readnode.var = var;
+    return n;
+}
+
 void free_node(Node *n) {
     if (!n) return;
     switch (n->type){
@@ -164,8 +184,8 @@ void free_node(Node *n) {
             free(n->decl.name);
             break;
         case NODE_ASSIGN:
-            free(n->assign.name);
             free_node(n->assign.expr);
+            free_node(n->assign.var);
             break;
         case NODE_IF:
             free_node(n->ifnode.cond);
@@ -178,7 +198,6 @@ void free_node(Node *n) {
             break;
         case NODE_VAR:
             free(n->var.name);
-            free_node(n->var.index);
             break;
         case NODE_BINOP:
             free_node(n->binop.left);
@@ -187,6 +206,14 @@ void free_node(Node *n) {
         case NODE_RELOP:
             free_node(n->relop.left);
             free_node(n->relop.right);
+            break;
+        case NODE_WRITE:
+            if (n->writenode.string) {
+                free(n->writenode.string);
+            }
+            free_node(n->writenode.var);
+        case NODE_READ:
+            free_node(n->readnode.var);
             break;
         case NODE_INT:
         case NODE_REAL:
@@ -210,7 +237,10 @@ static int set_variable_value_from_eval(Variable *v, EvalResult val, int index) 
     if (v->type == T_INTEIRO) {
         if (!v->data) {
             v->data = malloc(sizeof(int));
-            if (!v->data) return 0;
+            if (!v->data) {
+                perror("malloc() failed");
+                exit(1);
+            }
         }
 
         if (val.type == T_INTEIRO) {
@@ -219,12 +249,15 @@ static int set_variable_value_from_eval(Variable *v, EvalResult val, int index) 
             *(int *)v->data = (int)val.v.d;
         }
 
-        v->initialized = TRUE;
+        v->initialized = 1;
         return 1;
     } else if (v->type == T_REAL) {
         if (!v->data) {
             v->data = malloc(sizeof(double));
-            if (!v->data) return 0;
+            if (!v->data) {
+                perror("malloc() failed");
+                exit(1);
+            }
         }
 
         if (val.type == T_INTEIRO) {
@@ -233,32 +266,52 @@ static int set_variable_value_from_eval(Variable *v, EvalResult val, int index) 
             *(double *)v->data = val.v.d;
         }
 
-        v->initialized = TRUE;
+        v->initialized = 1;
         return 1;
     } else if (v->type == T_LISTAINT) {
         if (!v->data) {
             v->data = malloc(sizeof(int) * v->size);
-            if (!v->data) return 0;
+            if (!v->data) {
+                perror("malloc() failed");
+                exit(1);
+            }
         }
 
-        if (index < 0 || index >= v->size) return 0;
+        if (index < 0 || index >= v->size) {
+            fprintf(stderr, "set_variable_value_from_eval(): index out of range.\n");
+            exit(1);
+        }
+
         if (val.type == T_INTEIRO) {
             ((int *)v->data)[index] = val.v.i;
         } else {
             ((int *)v->data)[index] = (int)val.v.d;
         }
+
+        v->initialized = 1;
+        return 1;
     } else if (v->type == T_LISTAREAL) {
         if (!v->data) {
             v->data = malloc(sizeof(double) * v->size);
-            if (!v->data) return 0;
+            if (!v->data) {
+                perror("malloc() failed");
+                exit(1);
+            }
         }
 
-        if (index < 0 || index >= v->size) return 0;
+        if (index < 0 || index >= v->size) {
+            fprintf(stderr, "set_variable_value_from_eval(): index out of range.\n");
+            exit(1);
+        }
+
         if (val.type == T_INTEIRO) {
             ((double *)v->data)[index] = (double)val.v.i;
         } else {
             ((double *)v->data)[index] = val.v.d;
         }
+
+        v->initialized = 1;
+        return 1;
     }
     return 0;
 }
@@ -280,11 +333,11 @@ EvalResult eval_node(Node *n) {
         {
             Variable *v = search(n->var.name);
             if (!v) {
-                fprintf(stderr, "Erro: variável '%s' não declarada.\n", n->var.name);
+                fprintf(stderr, "eval_node(): undeclared variable '%s'.\n", n->var.name);
                 exit(1);
             }
             if (!v->initialized) {
-                fprintf(stderr, "Erro: variável '%s' não inicializada.\n", n->var.name);
+                fprintf(stderr, "eval_node(): variable '%s' not initialized.\n", n->var.name);
                 exit(1);
             }
 
@@ -298,27 +351,25 @@ EvalResult eval_node(Node *n) {
                 return r;
             } else if (v->type == T_LISTAINT || v->type == T_LISTAREAL) {
                 if (!n->var.index) {
-                    fprintf(stderr, "Erro: acesso a vetor sem índice.\n");
+                    fprintf(stderr, "eval_node(): access to vector without index.\n");
                     exit(1);
                 }
 
-                EvalResult idx = eval_node(n->var.index);
-                int pos = (idx.type == T_INTEIRO) ? idx.v.i : (int)idx.v.d;
-                if (pos < 0 || pos >= v->size) {
-                    fprintf(stderr, "Erro: índice fora do interval.\n");
+                if (n->var.index < 0 || n->var.index >= v->size) {
+                    fprintf(stderr, "eval_node(): index out of range.\n");
                     exit(1);
                 }
 
                 if (v->type == T_INTEIRO) {
                     r.type = T_INTEIRO;
-                    r.v.i = ((int *)v->data)[pos];
+                    r.v.i = ((int *)v->data)[n->var.index];
                 } else {
                     r.type = T_REAL;
-                    r.v.d = ((double *)v->data)[pos];
+                    r.v.d = ((double *)v->data)[n->var.index];
                 }
                 return r;
             } else {
-                fprintf(stderr, "Erro: tipo não suportado em eval_node(Node *).\n");
+                fprintf(stderr, "eval_node(): unsupported type.\n");
                 exit(1);
             }
         }
@@ -333,7 +384,7 @@ EvalResult eval_node(Node *n) {
                     case OP_SUB: r.v.i = left.v.i - right.v.i; break;
                     case OP_MUL: r.v.i = left.v.i * right.v.i; break;
                     case OP_DIV:
-                    default: r.v.i = left.v.i / right.v.i; break;
+                    default: r.v.i = left.v.i / right.v.i;
                 }
             } else {
                 double ld = (left.type == T_INTEIRO) ? (double)left.v.i : left.v.d;
@@ -344,7 +395,7 @@ EvalResult eval_node(Node *n) {
                     case OP_SUB: r.v.d = ld - rd; break;
                     case OP_MUL: r.v.d = ld * rd; break;
                     case OP_DIV:
-                    default: r.v.d = ld / rd; break;
+                    default: r.v.d = ld / rd;
                 }
             }
             return r;
@@ -352,24 +403,31 @@ EvalResult eval_node(Node *n) {
         case NODE_RELOP:
         {
             EvalResult left = eval_node(n->relop.left);
-            EvalResult right = eval_node(n->relop.right);
-            double ld = (left.type == T_INTEIRO) ? (double)left.v.i : left.v.d;
-            double rd = (right.type == T_INTEIRO) ? (double)right.v.i : right.v.d;
+            if (n->relop.op == R_NAO) {
+                r.type = T_INTEIRO;
+                r.v.i = !left.v.i;
+            } else {
+                EvalResult right = eval_node(n->relop.right);
+                double ld = (left.type == T_INTEIRO) ? (double)left.v.i : left.v.d;
+                double rd = (right.type == T_INTEIRO) ? (double)right.v.i : right.v.d;
 
-            r.type = T_INTEIRO;
-            switch (n->relop.op) {
-                case R_MAQ: r.v.i = ld > rd; break;
-                case R_MAI: r.v.i = ld >= rd; break;
-                case R_MEQ: r.v.i = ld < rd; break;
-                case R_MEI: r.v.i = ld <= rd; break;
-                case R_IGU: r.v.i = ld == rd; break;
-                case R_DIF: r.v.i = ld != rd; break;
-                default: r.v.i = 0;
+                r.type = T_INTEIRO;
+                switch (n->relop.op) {
+                    case R_MAQ: r.v.i = ld > rd; break;
+                    case R_MAI: r.v.i = ld >= rd; break;
+                    case R_MEQ: r.v.i = ld < rd; break;
+                    case R_MEI: r.v.i = ld <= rd; break;
+                    case R_IGU: r.v.i = ld == rd; break;
+                    case R_DIF: r.v.i = ld != rd; break;
+                    case R_OU: r.v.i = ld || rd; break;
+                    case R_E: r.v.i = ld && rd; break;
+                    default: r.v.i = 0;
+                }
             }
             return r;
         }
         default:
-            fprintf(stderr, "eval_node: Nó de expressão inesperado %d.\n", n->type);
+            fprintf(stderr, "eval_node(): unsupported node type '%d'.\n", n->type);
             exit(1);
     }
 }
@@ -385,25 +443,20 @@ void execute_node(Node *n) {
         case NODE_DECL:
         {
             Variable *v = create(n->decl.name, n->decl.vartype, n->decl.size);
-            if (!v) {
-                fprintf(stderr, "Erro: create() falhou.\n");
-                exit(1);
-            }
-
             insert(v);
             break;
         }
         case NODE_ASSIGN:
         {
             EvalResult val = eval_node(n->assign.expr);
-            Variable *v = search(n->assign.name);
+            Variable *v = search(n->assign.var->var.name);
             if (!v) {
-                fprintf(stderr, "Erro: variável '%s' não declarada.\n", n->assign.name);
+                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
                 exit(1);
             }
 
-            if (!set_variable_value_from_eval(v, val, n->assign.index)) {
-                fprintf(stderr, "Erro: atribuição falhou (tipo ou lista não suportado).\n");
+            if (!set_variable_value_from_eval(v, val, n->assign.var->var.index)) {
+                fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
             }
             break;
@@ -429,8 +482,52 @@ void execute_node(Node *n) {
             }
             break;
         }
+        case NODE_WRITE:
+        {
+            if (!n->writenode.var) {
+                printf("%s\n", n->writenode.string);
+            } else {
+                EvalResult val = eval_node(n->writenode.var);
+                if (val.type == T_INTEIRO) {
+                    if (n->writenode.string) {
+                        printf("%s%d\n", n->writenode.string, val.v.i);
+                    } else {
+                        printf("%d\n", val.v.i);
+                    }
+                } else {
+                    if (n->writenode.string) {
+                        printf("%s%f\n", n->writenode.string, val.v.d);
+                    } else {
+                        printf("%f\n", val.v.d);
+                    }
+                }
+            }
+            break;
+        }
+        case NODE_READ:
+        {
+            EvalResult val;
+            Variable *v = search(n->readnode.var->var.name);
+            if (!v) {
+                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_LISTAINT) {
+                val.type = T_INTEIRO;
+                scanf("%d", &val.v.i);
+            } else {
+                val.type = T_REAL;
+                scanf("%f", &val.v.d);
+            }
+
+            if (!set_variable_value_from_eval(v, val, n->readnode.var->var.index)) {
+                fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
+                exit(1);
+            }
+        }
         default:
-            fprintf(stderr, "execute_node(): nó de comando inesperado %d.\n", n->type);
+            fprintf(stderr, "execute_node(): unsupported node type '%d'.\n", n->type);
             exit(1);
     }
 }
