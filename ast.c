@@ -388,15 +388,27 @@ EvalResult eval_node(Node *n) {
 
     switch (n->type) {
         case NODE_INT:
+            #ifdef DEBUG
+                printf("[AST] - Evaluating NODE_INT\n");
+            #endif
+
             r.type = T_INTEIRO;
             r.v.i = n->intval;
             return r;
         case NODE_REAL:
+            #ifdef DEBUG
+                printf("[AST] - Evaluating NODE_REAL\n");
+            #endif
+
             r.type = T_REAL;
             r.v.d = n->realval;
             return r;
         case NODE_VAR:
         {
+            #ifdef DEBUG
+                printf("[AST] - Evaluating NODE_VAR\n");
+            #endif
+
             Variable *v = search(variables, n->var.name);
             if (!v) {
                 fprintf(stderr, "eval_node() - NODE_VAR: undeclared variable '%s'.\n", n->var.name);
@@ -437,6 +449,10 @@ EvalResult eval_node(Node *n) {
         }
         case NODE_BINOP:
         {
+            #ifdef DEBUG
+                printf("[AST] - Evaluating NODE_BINOP\n");
+            #endif
+
             EvalResult left = eval_node(n->binop.left);
             EvalResult right = eval_node(n->binop.right);
             if (left.type == T_INTEIRO && right.type == T_INTEIRO) {
@@ -464,6 +480,10 @@ EvalResult eval_node(Node *n) {
         }
         case NODE_RELOP:
         {
+            #ifdef DEBUG
+                printf("[AST] - Evaluating NODE_RELOP\n");
+            #endif
+
             EvalResult left = eval_node(n->relop.left);
             if (n->relop.op == R_NAO) {
                 r.v.i = !left.v.i;
@@ -497,18 +517,35 @@ void execute_node(Node *n) {
     if (!n) return;
     switch (n->type) {
         case NODE_BLOCK:
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_BLOCK\n");
+            #endif
+
             for (int i = 0; i < n->block.count; i++) {
                 execute_node(n->block.cmds[i]);
             }
+
+            #ifdef DEBUG
+                printf("[AST] - End NODE_BLOCK\n");
+            #endif
+
             break;
         case NODE_DECL:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_DECL\n");
+            #endif
+
             Variable *v = create_var(n->decl.name, n->decl.vartype, n->decl.size);
             insert(variables, v);
             break;
         }
         case NODE_ASSIGN:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_ASSIGN\n");
+            #endif
+
             EvalResult val = eval_node(n->assign.expr);
             Variable *v = search(variables, n->assign.var->var.name);
             if (!v) {
@@ -525,6 +562,10 @@ void execute_node(Node *n) {
         }
         case NODE_IF:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_IF\n");
+            #endif
+
             EvalResult cond = eval_node(n->ifnode.cond);
             if (cond.v.i) {
                 execute_node(n->ifnode.then_block);
@@ -535,6 +576,10 @@ void execute_node(Node *n) {
         }
         case NODE_WHILE:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_WHILE\n");
+            #endif
+
             while (1) {
                 EvalResult cond = eval_node(n->whilenode.cond);
                 if (!cond.v.i) break;
@@ -544,6 +589,10 @@ void execute_node(Node *n) {
         }
         case NODE_WRITE:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_WRITE\n");
+            #endif
+
             if (!n->writenode.var) {
                 printf("%s\n", n->writenode.string);
             } else {
@@ -556,9 +605,9 @@ void execute_node(Node *n) {
                     }
                 } else {
                     if (n->writenode.string) {
-                        printf("%s%f\n", n->writenode.string, val.v.d);
+                        printf("%s%lf\n", n->writenode.string, val.v.d);
                     } else {
-                        printf("%f\n", val.v.d);
+                        printf("%lf\n", val.v.d);
                     }
                 }
             }
@@ -566,6 +615,10 @@ void execute_node(Node *n) {
         }
         case NODE_READ:
         {
+            #ifdef DEBUG
+                printf("[AST] - Running NODE_READ\n");
+            #endif
+
             EvalResult val;
             Variable *v = search(variables, n->readnode.var->var.name);
             if (!v) {
@@ -578,7 +631,7 @@ void execute_node(Node *n) {
                 scanf("%d", &val.v.i);
             } else {
                 val.type = T_REAL;
-                scanf("%f", &val.v.d);
+                scanf("%lf", &val.v.d);
             }
 
             int index = eval_index(n->readnode.var->var.index);

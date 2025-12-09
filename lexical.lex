@@ -7,8 +7,6 @@
     #include <stdlib.h>
     #include <string.h>
     #include <stdio.h>
-
-    #define DEBUG_LEX 1
 %}
 
 DIGIT       [0-9]
@@ -24,43 +22,242 @@ COMMENT     \{[^}\n]*\}
 %%
 
 
-"PROGRAMA"  { if(DEBUG_LEX) printf("[LEX] PROGRAMA\n"); return PROGRAMA; }
-"FIMPROG"   { if(DEBUG_LEX) printf("[LEX] FIMPROG\n"); return FIMPROG; }
-"INTEIRO"   { if(DEBUG_LEX) printf("[LEX] INTEIRO\n"); yylval.type = T_INTEIRO; return INTEIRO; }
-"REAL"      { if(DEBUG_LEX) printf("[LEX] REAL\n"); yylval.type = T_REAL; return REAL; }
-"LISTAINT"  { if(DEBUG_LEX) printf("[LEX] LISTAINT\n"); yylval.type = T_LISTAINT; return LISTAINT; }
-"LISTAREAL" { if(DEBUG_LEX) printf("[LEX] LISTAREAL\n"); yylval.type = T_LISTAREAL; return LISTAREAL; }
+"PROGRAMA"  {
+    #ifdef DEBUG
+        printf("[LEX] PROGRAMA\n");
+    #endif
+    return PROGRAMA;
+}
 
-"LEIA"      { if(DEBUG_LEX) printf("[LEX] LEIA\n"); return LEIA; }
-"ESCREVA"   { if(DEBUG_LEX) printf("[LEX] ESCREVA\n"); return ESCREVA; }
+"FIMPROG"   {
+    #ifdef DEBUG
+        printf("[LEX] FIMPROG\n");
+    #endif
+    return FIMPROG;
+}
 
-"SE"        { if(DEBUG_LEX) printf("[LEX] SE\n"); return SE; }
-"ENTAO"     { if(DEBUG_LEX) printf("[LEX] ENTAO\n"); return ENTAO; }
-"SENAO"     { if(DEBUG_LEX) printf("[LEX] SENAO\n"); return SENAO; }
-"FIMSE"     { if(DEBUG_LEX) printf("[LEX] FIMSE\n"); return FIMSE; }
+"INTEIRO"   {
+    #ifdef DEBUG
+        printf("[LEX] INTEIRO\n");
+    #endif
+    yylval.type = T_INTEIRO;
+    return INTEIRO;
+}
 
-"ENQUANTO"  { if(DEBUG_LEX) printf("[LEX] ENQUANTO\n"); return ENQUANTO; }
-"FACA"      { if(DEBUG_LEX) printf("[LEX] FACA\n"); return FACA; }
-"FIMENQ"    { if(DEBUG_LEX) printf("[LEX] FIMENQ\n"); return FIMENQ; }
+"REAL"      {
+    #ifdef DEBUG
+        printf("[LEX] REAL\n");
+    #endif
+    yylval.type = T_REAL;
+    return REAL;
+}
 
-".NAO."     { if(DEBUG_LEX) printf("[LEX] NAO\n"); yylval.operand = R_NAO; return NAO; }
-".E."       { if(DEBUG_LEX) printf("[LEX] E\n"); yylval.operand = R_E; return E; }
-".OU."      { if(DEBUG_LEX) printf("[LEX] OU\n"); yylval.operand = R_OU; return OU; }
-".MAQ."     { if(DEBUG_LEX) printf("[LEX] MAQ\n"); yylval.operand = R_MAQ; return MAQ; }
-".MAI."     { if(DEBUG_LEX) printf("[LEX] MAI\n"); yylval.operand = R_MAI; return MAI; }
-".MEQ."     { if(DEBUG_LEX) printf("[LEX] MEQ\n"); yylval.operand = R_MEQ; return MEQ; }
-".MEI."     { if(DEBUG_LEX) printf("[LEX] MEI\n"); yylval.operand = R_MEI; return MEI; }
-".IGU."     { if(DEBUG_LEX) printf("[LEX] IGU\n"); yylval.operand = R_IGU; return IGU; }
-".DIF."     { if(DEBUG_LEX) printf("[LEX] DIF\n"); yylval.operand = R_DIF; return DIF; }
+"LISTAINT"  {
+    #ifdef DEBUG
+        printf("[LEX] LISTAINT\n");
+    #endif
+    yylval.type = T_LISTAINT;
+    return LISTAINT;
+}
 
-":="        { if(DEBUG_LEX) printf("[LEX] := \n"); return ATRIB; }
-"+"         { if(DEBUG_LEX) printf("[LEX] + \n"); return '+'; }
-"-"         { if(DEBUG_LEX) printf("[LEX] - \n"); return '-'; }
-"*"         { if(DEBUG_LEX) printf("[LEX] * \n"); return '*'; }
-"/"         { if(DEBUG_LEX) printf("[LEX] / \n"); return '/'; }
-","         { if(DEBUG_LEX) printf("[LEX] , \n"); return ','; }
-"("         { if(DEBUG_LEX) printf("[LEX] ( \n"); return '('; }
-")"         { if(DEBUG_LEX) printf("[LEX] ) \n"); return ')'; }
+"LISTAREAL" {
+    #ifdef DEBUG
+        printf("[LEX] LISTAREAL\n");
+    #endif
+    yylval.type = T_LISTAREAL;
+    return LISTAREAL;
+}
+
+"LEIA"      {
+    #ifdef DEBUG
+        printf("[LEX] LEIA\n");
+    #endif
+    return LEIA;
+}
+
+"ESCREVA"   {
+    #ifdef DEBUG
+        printf("[LEX] ESCREVA\n");
+    #endif
+    return ESCREVA;
+}
+
+"SE"        {
+    #ifdef DEBUG
+        printf("[LEX] SE\n");
+    #endif
+    return SE;
+}
+
+"ENTAO"     {
+    #ifdef DEBUG
+        printf("[LEX] ENTAO\n");
+    #endif
+    return ENTAO;
+}
+
+"SENAO"     {
+    #ifdef DEBUG
+        printf("[LEX] SENAO\n");
+    #endif
+    return SENAO;
+}
+
+"FIMSE"     {
+    #ifdef DEBUG
+        printf("[LEX] FIMSE\n");
+    #endif
+    return FIMSE;
+}
+
+"ENQUANTO"  {
+    #ifdef DEBUG
+        printf("[LEX] ENQUANTO\n");
+    #endif
+    return ENQUANTO;
+}
+
+"FACA"      {
+    #ifdef DEBUG
+        printf("[LEX] FACA\n");
+    #endif
+    return FACA;
+}
+
+"FIMENQ"    {
+    #ifdef DEBUG
+        printf("[LEX] FIMENQ\n");
+    #endif
+    return FIMENQ;
+}
+
+".NAO."     {
+    #ifdef DEBUG
+        printf("[LEX] NAO\n");
+    #endif
+    yylval.operand = R_NAO;
+    return NAO;
+}
+
+".E."       {
+    #ifdef DEBUG
+        printf("[LEX] E\n");
+    #endif
+    yylval.operand = R_E;
+    return E;
+}
+
+".OU."      {
+    #ifdef DEBUG
+        printf("[LEX] OU\n");
+    #endif
+    yylval.operand = R_OU;
+    return OU;
+}
+
+".MAQ."     {
+    #ifdef DEBUG
+        printf("[LEX] MAQ\n");
+    #endif
+    yylval.operand = R_MAQ;
+    return MAQ;
+}
+
+".MAI."     {
+    #ifdef DEBUG
+        printf("[LEX] MAI\n");
+    #endif
+    yylval.operand = R_MAI;
+    return MAI;
+}
+
+".MEQ."     {
+    #ifdef DEBUG
+        printf("[LEX] MEQ\n");
+    #endif
+    yylval.operand = R_MEQ;
+    return MEQ;
+}
+
+".MEI."     {
+    #ifdef DEBUG
+        printf("[LEX] MEI\n");
+    #endif
+    yylval.operand = R_MEI;
+    return MEI;
+}
+
+".IGU."     {
+    #ifdef DEBUG
+        printf("[LEX] IGU\n");
+    #endif
+    yylval.operand = R_IGU;
+    return IGU;
+}
+
+".DIF."     {
+    #ifdef DEBUG
+        printf("[LEX] DIF\n");
+    #endif
+    yylval.operand = R_DIF;
+    return DIF;
+}
+
+":="        {
+    #ifdef DEBUG
+        printf("[LEX] := \n");
+    #endif
+    return ATRIB;
+}
+
+"+"         {
+    #ifdef DEBUG
+        printf("[LEX] + \n");
+    #endif
+    return '+';
+}
+
+"-"         {
+    #ifdef DEBUG
+        printf("[LEX] - \n");
+    #endif
+    return '-';
+}
+
+"*"         {
+    #ifdef DEBUG
+        printf("[LEX] * \n");
+    #endif
+    return '*';
+}
+
+"/"         {
+    #ifdef DEBUG
+        printf("[LEX] / \n");
+    #endif
+    return '/';
+}
+
+","         {
+    #ifdef DEBUG
+        printf("[LEX] , \n");
+    #endif
+    return ',';
+}
+
+"("         {
+    #ifdef DEBUG
+        printf("[LEX] ( \n");
+    #endif
+    return '(';
+}
+
+")"         {
+    #ifdef DEBUG
+        printf("[LEX] ) \n");
+    #endif
+    return ')';
+}
 
 {LISTA_NUM} {
     char *text = strdup(yytext);
@@ -71,9 +268,9 @@ COMMENT     \{[^}\n]*\}
     yylval.flex.length = atoi(size);
     yylval.flex.variable = NULL;
 
-    if(DEBUG_LEX)
-        printf("[LEX] VAR_NAME (lista) name=%s size=%d\n",
-               yylval.flex.name, yylval.flex.length);
+    #ifdef DEBUG
+        printf("[LEX] VAR_NAME (lista) name=%s size=%d\n", yylval.flex.name, yylval.flex.length);
+    #endif
 
     free(text);
     return VAR_NAME;
@@ -88,9 +285,9 @@ COMMENT     \{[^}\n]*\}
     yylval.flex.length = 0;
     yylval.flex.variable = strdup(size_var);
 
-    if(DEBUG_LEX)
-        printf("[LEX] VAR_NAME (lista) name=%s size_var=%s\n",
-               yylval.flex.name, yylval.flex.variable);
+    #ifdef DEBUG
+        printf("[LEX] VAR_NAME (lista) name=%s size_var=%s\n", yylval.flex.name, yylval.flex.variable);
+    #endif
 
     free(text);
     return VAR_NAME;
@@ -98,20 +295,26 @@ COMMENT     \{[^}\n]*\}
 
 {INT} {
     yylval.integer = atoi(yytext);
-    if(DEBUG_LEX) printf("[LEX] N_INT = %d\n", yylval.integer);
+    #ifdef DEBUG
+        printf("[LEX] N_INT = %d\n", yylval.integer);
+    #endif
     return N_INT;
 }
 
 {REAL} {
     yylval.real = atof(yytext);
-    if(DEBUG_LEX) printf("[LEX] N_REAL = %lf\n", yylval.real);
+    #ifdef DEBUG
+        printf("[LEX] N_REAL = %lf\n", yylval.real);
+    #endif
     return N_REAL;
 }
 
 {STRING} {
     yylval.string = strdup(yytext + 1);
     yylval.string[strlen(yytext) - 2] = '\0';
-    if(DEBUG_LEX) printf("[LEX] STRING = %s\n", yylval.string);
+    #ifdef DEBUG
+        printf("[LEX] STRING = %s\n", yylval.string);
+    #endif
     return STRING;
 }
 
@@ -120,7 +323,9 @@ COMMENT     \{[^}\n]*\}
     yylval.flex.length = 0;
     yylval.flex.variable = NULL;
 
-    if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.flex.name);
+    #ifdef DEBUG
+        printf("[LEX] VAR_NAME (simples) = %s\n", yylval.flex.name);
+    #endif
     return VAR_NAME;
 }
 
