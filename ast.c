@@ -1,12 +1,11 @@
-#include "ast.h"
-#include "types.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "ast.h"
+#include "types.h"
+#include "variables.h"
 
-extern Variable *search(char *name);
-extern void insert(Variable *data);
-extern Variable *create(char *name, Types type, int size);
+extern List *variables;
 
 /**
  * @brief Create a new node.
@@ -29,7 +28,10 @@ static Node *alloc_node(NodeType t) {
 
 void add_child(Node *n, Node *child) {
     if (!n || !child) return;
-    if (n->type != NODE_BLOCK) return;
+    if (n->type != NODE_BLOCK) {
+        fprintf(stderr, "add_child(): invalid node type.\n");
+        exit(1);
+    }
 
     Node **new_cmds = (Node **)malloc(sizeof(Node *) * (n->block.count + 1));
     if (!new_cmds) {
@@ -55,8 +57,12 @@ void change_untypeds(Node **cmds, int length, Types type) {
 }
 
 Node *join_blocks(Node *n1, Node *n2) {
-    if (!n1 || !n2 || n1->type != NODE_BLOCK || n2->type != NODE_BLOCK) {
-        fprintf(stderr, "join_blocks(): invalid nodes.");
+    if (!n1 || !n2) {
+        fprintf(stderr, "join_blocks(): the nodes must exist.\n");
+        exit(1);
+    }
+    if (n1->type != NODE_BLOCK || n2->type != NODE_BLOCK) {
+        fprintf(stderr, "join_blocks(): invalid nodes type.\n");
         exit(1);
     }
 
@@ -79,6 +85,11 @@ Node *join_blocks(Node *n1, Node *n2) {
 }
 
 Node *make_block(Node **cmds, int count) {
+    if (!cmds) {
+        fprintf(stderr, "make_block(): cmds must exist.\n");
+        exit(1);
+    }
+
     Node *n = alloc_node(NODE_BLOCK);
     n->block.cmds = cmds;
     n->block.count = count;
@@ -86,16 +97,20 @@ Node *make_block(Node **cmds, int count) {
 }
 
 
-Node *make_decl(Types t, const char *name, int size) {
+Node *make_decl(Types type, const char *name, int size) {
     Node *n = alloc_node(NODE_DECL);
-    n->decl.vartype = t;
+    n->decl.vartype = type;
     n->decl.name = strdup(name);
     n->decl.size = size;
     return n;
 }
 
 Node *make_assign(Node *expr, Node *var) {
-    if (!var || var->type != NODE_VAR) {
+    if (!expr || !var) {
+        fprintf(stderr, "make_assign(): the nodes must exist.\n");
+        exit(1);
+    }
+    if (var->type != NODE_VAR) {
         fprintf(stderr, "make_assing(): incompatible node type.\n");
         exit(1);
     }
@@ -107,6 +122,15 @@ Node *make_assign(Node *expr, Node *var) {
 }
 
 Node *make_if(Node *cond, Node *then_block, Node *else_block) {
+    if (!cond || !then_block) {
+        fprintf(stderr, "make_if(): the nodes (cond and then_block) must exist.\n");
+        exit(1);
+    }
+    if (cond->type != NODE_RELOP) {
+        fprintf(stderr, "make_if(): incompatible node (cond) type.\n");
+        exit(1);
+    }
+
     Node *n = alloc_node(NODE_IF);
     n->ifnode.cond = cond;
     n->ifnode.then_block = then_block;
@@ -115,6 +139,15 @@ Node *make_if(Node *cond, Node *then_block, Node *else_block) {
 }
 
 Node *make_while(Node *cond, Node *body) {
+    if (!cond || !body) {
+        fprintf(stderr, "make_while(): the nodes must exist.\n");
+        exit(1);
+    }
+    if (cond->type != NODE_RELOP) {
+        fprintf(stderr, "make_while(): incompatible node (cond) type.\n");
+        exit(1);
+    }
+
     Node *n = alloc_node(NODE_WHILE);
     n->whilenode.cond = cond;
     n->whilenode.body = body;
@@ -164,6 +197,15 @@ Node *make_write(const char *string, Node *var) {
 }
 
 Node *make_read(Node *var) {
+    if (!var) {
+        fprintf(stderr, "make_read(): the node must exist.\n");
+        exit(1);
+    }
+    if (var->type != NODE_VAR) {
+        fprintf(stderr, "make_read(): incompatible node type.\n");
+        exit(1);
+    }
+
     Node *n = alloc_node(NODE_READ);
     n->readnode.var = var;
     return n;
@@ -171,6 +213,7 @@ Node *make_read(Node *var) {
 
 void free_node(Node *n) {
     if (!n) return;
+
     switch (n->type){
         case NODE_BLOCK:
             if (n->block.cmds) {
@@ -331,7 +374,7 @@ EvalResult eval_node(Node *n) {
             return r;
         case NODE_VAR:
         {
-            Variable *v = search(n->var.name);
+            Variable *v = search(variables, n->var.name);
             if (!v) {
                 fprintf(stderr, "eval_node(): undeclared variable '%s'.\n", n->var.name);
                 exit(1);
@@ -350,11 +393,6 @@ EvalResult eval_node(Node *n) {
                 r.v.d = *(double *)v->data;
                 return r;
             } else if (v->type == T_LISTAINT || v->type == T_LISTAREAL) {
-                if (!n->var.index) {
-                    fprintf(stderr, "eval_node(): access to vector without index.\n");
-                    exit(1);
-                }
-
                 if (n->var.index < 0 || n->var.index >= v->size) {
                     fprintf(stderr, "eval_node(): index out of range.\n");
                     exit(1);
@@ -369,7 +407,7 @@ EvalResult eval_node(Node *n) {
                 }
                 return r;
             } else {
-                fprintf(stderr, "eval_node(): unsupported type.\n");
+                fprintf(stderr, "eval_node(): unsupported variable type.\n");
                 exit(1);
             }
         }
@@ -404,14 +442,12 @@ EvalResult eval_node(Node *n) {
         {
             EvalResult left = eval_node(n->relop.left);
             if (n->relop.op == R_NAO) {
-                r.type = T_INTEIRO;
                 r.v.i = !left.v.i;
             } else {
                 EvalResult right = eval_node(n->relop.right);
                 double ld = (left.type == T_INTEIRO) ? (double)left.v.i : left.v.d;
                 double rd = (right.type == T_INTEIRO) ? (double)right.v.i : right.v.d;
 
-                r.type = T_INTEIRO;
                 switch (n->relop.op) {
                     case R_MAQ: r.v.i = ld > rd; break;
                     case R_MAI: r.v.i = ld >= rd; break;
@@ -424,6 +460,7 @@ EvalResult eval_node(Node *n) {
                     default: r.v.i = 0;
                 }
             }
+            r.type = T_INTEIRO;
             return r;
         }
         default:
@@ -442,14 +479,14 @@ void execute_node(Node *n) {
             break;
         case NODE_DECL:
         {
-            Variable *v = create(n->decl.name, n->decl.vartype, n->decl.size);
-            insert(v);
+            Variable *v = create_var(n->decl.name, n->decl.vartype, n->decl.size);
+            insert(variables, v);
             break;
         }
         case NODE_ASSIGN:
         {
             EvalResult val = eval_node(n->assign.expr);
-            Variable *v = search(n->assign.var->var.name);
+            Variable *v = search(variables, n->assign.var->var.name);
             if (!v) {
                 fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
                 exit(1);
@@ -464,8 +501,7 @@ void execute_node(Node *n) {
         case NODE_IF:
         {
             EvalResult cond = eval_node(n->ifnode.cond);
-            int c = (cond.type == T_INTEIRO ? cond.v.i : (cond.v.d != 0.0));
-            if (c) {
+            if (cond.v.i) {
                 execute_node(n->ifnode.then_block);
             } else if (n->ifnode.else_block) {
                 execute_node(n->ifnode.else_block);
@@ -476,8 +512,7 @@ void execute_node(Node *n) {
         {
             while (1) {
                 EvalResult cond = eval_node(n->whilenode.cond);
-                int c = (cond.type == T_INTEIRO ? cond.v.i : (cond.v.d != 0.0));
-                if (!c) break;
+                if (!cond.v.i) break;
                 execute_node(n->whilenode.body);
             }
             break;
@@ -507,7 +542,7 @@ void execute_node(Node *n) {
         case NODE_READ:
         {
             EvalResult val;
-            Variable *v = search(n->readnode.var->var.name);
+            Variable *v = search(variables, n->readnode.var->var.name);
             if (!v) {
                 fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
                 exit(1);

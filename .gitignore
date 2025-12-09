@@ -9,4 +9,6 @@
 *.output
 *.tab*
 *.yy*
+*.o
 compiler
+*.txt

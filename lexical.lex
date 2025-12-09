@@ -42,24 +42,24 @@ COMMENT     \{[^}\n]*\}
 "FACA"      { if(DEBUG_LEX) printf("[LEX] FACA\n"); return FACA; }
 "FIMENQ"    { if(DEBUG_LEX) printf("[LEX] FIMENQ\n"); return FIMENQ; }
 
-".NAO."     { if(DEBUG_LEX) printf("[LEX] NAO\n"); return NAO; }
-".E."       { if(DEBUG_LEX) printf("[LEX] E\n"); return E; }
-".OU."      { if(DEBUG_LEX) printf("[LEX] OU\n"); return OU; }
-".MAQ."     { if(DEBUG_LEX) printf("[LEX] MAQ\n"); return MAQ; }
-".MAI."     { if(DEBUG_LEX) printf("[LEX] MAI\n"); return MAI; }
-".MEQ."     { if(DEBUG_LEX) printf("[LEX] MEQ\n"); return MEQ; }
-".MEI."     { if(DEBUG_LEX) printf("[LEX] MEI\n"); return MEI; }
-".IGU."     { if(DEBUG_LEX) printf("[LEX] IGU\n"); return IGU; }
-".DIF."     { if(DEBUG_LEX) printf("[LEX] DIF\n"); return DIF; }
+".NAO."     { if(DEBUG_LEX) printf("[LEX] NAO\n"); yylval.operand = R_NAO; return NAO; }
+".E."       { if(DEBUG_LEX) printf("[LEX] E\n"); yylval.operand = R_E; return E; }
+".OU."      { if(DEBUG_LEX) printf("[LEX] OU\n"); yylval.operand = R_OU; return OU; }
+".MAQ."     { if(DEBUG_LEX) printf("[LEX] MAQ\n"); yylval.operand = R_MAQ; return MAQ; }
+".MAI."     { if(DEBUG_LEX) printf("[LEX] MAI\n"); yylval.operand = R_MAI; return MAI; }
+".MEQ."     { if(DEBUG_LEX) printf("[LEX] MEQ\n"); yylval.operand = R_MEQ; return MEQ; }
+".MEI."     { if(DEBUG_LEX) printf("[LEX] MEI\n"); yylval.operand = R_MEI; return MEI; }
+".IGU."     { if(DEBUG_LEX) printf("[LEX] IGU\n"); yylval.operand = R_IGU; return IGU; }
+".DIF."     { if(DEBUG_LEX) printf("[LEX] DIF\n"); yylval.operand = R_DIF; return DIF; }
 
-":="        { if(DEBUG_LEX) printf("[LEX] := \n");  }
-"+"         { if(DEBUG_LEX) printf("[LEX] + \n"); }
-"-"         { if(DEBUG_LEX) printf("[LEX] - \n"); }
-"*"         { if(DEBUG_LEX) printf("[LEX] * \n"); }
-"/"         { if(DEBUG_LEX) printf("[LEX] / \n"); }
-","         { if(DEBUG_LEX) printf("[LEX] , \n"); }
-"("         { if(DEBUG_LEX) printf("[LEX] ( \n"); }
-")"         { if(DEBUG_LEX) printf("[LEX] ) \n"); }
+":="        { if(DEBUG_LEX) printf("[LEX] := \n"); return ATRIB; }
+"+"         { if(DEBUG_LEX) printf("[LEX] + \n"); return '+'; }
+"-"         { if(DEBUG_LEX) printf("[LEX] - \n"); return '-'; }
+"*"         { if(DEBUG_LEX) printf("[LEX] * \n"); return '*'; }
+"/"         { if(DEBUG_LEX) printf("[LEX] / \n"); return '/'; }
+","         { if(DEBUG_LEX) printf("[LEX] , \n"); return ','; }
+"("         { if(DEBUG_LEX) printf("[LEX] ( \n"); return '('; }
+")"         { if(DEBUG_LEX) printf("[LEX] ) \n"); return ')'; }
 
 {LISTA_DECL} {
     char *text = strdup(yytext);
@@ -78,8 +78,8 @@ COMMENT     \{[^}\n]*\}
 }
 
 {INT} {
-    yylval.inteiro = atoi(yytext);
-    if(DEBUG_LEX) printf("[LEX] N_INT = %d\n", yylval.inteiro);
+    yylval.integer = atoi(yytext);
+    if(DEBUG_LEX) printf("[LEX] N_INT = %d\n", yylval.integer);
     return N_INT;
 }
 
@@ -90,14 +90,14 @@ COMMENT     \{[^}\n]*\}
 }
 
 {STRING} {
-    yylval.cadeia = strdup(yytext);
-    if(DEBUG_LEX) printf("[LEX] STRING = %s\n", yylval.cadeia);
+    yylval.string = strdup(yytext);
+    if(DEBUG_LEX) printf("[LEX] STRING = %s\n", yylval.string);
     return STRING;
 }
 
 {ID} {
-    yylval.cadeia = strdup(yytext);
-    if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.cadeia);
+    yylval.string = strdup(yytext);
+    if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.string);
     return VAR_NAME;
 }
 

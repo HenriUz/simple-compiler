@@ -7,20 +7,25 @@
  * @enum NodeType
  *
  * @brief Possible types of nodes in the AST.
+ *
+ * Nodes are divided into nodes that result in some value, and nodes that represent some action.
  */
 typedef enum NodeType {
-    NODE_BLOCK,     // Lista de declarações.
-    NODE_DECL,      // Declaração: tipo nome.
-    NODE_ASSIGN,    // Atribuição: nome := expr.
-    NODE_IF,        // Se condição then_block else_block.
-    NODE_WHILE,     // While condição.
-    NODE_INT,       // Int.
-    NODE_REAL,      // Real.
-    NODE_VAR,       // Acesso a variável.
-    NODE_BINOP,     // + - * /.
-    NODE_RELOP,     // Operadores relacionais.
-    NODE_WRITE,
-    NODE_READ,
+    /* Action nodes. */
+    NODE_BLOCK,     // Contains nodes to be executed.
+    NODE_DECL,      // Node representing a statement.
+    NODE_ASSIGN,    // Node representing an assignment.
+    NODE_IF,        // Node representing an if.
+    NODE_WHILE,     // Node representing a while.
+    NODE_WRITE,     // Node representing a printf.
+    NODE_READ,      // Node representing a scanf.
+
+    /* Value nodes. */
+    NODE_INT,       // Node representing an integer.
+    NODE_REAL,      // Node representing a real.
+    NODE_VAR,       // Node representing a variable.
+    NODE_BINOP,     // Node representing a BinOp expression.
+    NODE_RELOP,     // Node representing a RelOP expression.
 } NodeType;
 
 /**
@@ -28,7 +33,7 @@ typedef enum NodeType {
  *
  * @brief Possible result for the evaluation of some expression.
  *
- * It does not consider list types, and the boolean type is stored as an integer i.
+ * It does not consider vector types.
  */
 typedef struct EvalResult {
     Types type;
@@ -63,6 +68,12 @@ typedef struct Node {
         /* While. */
         struct { struct Node *cond; struct Node *body; } whilenode;
 
+        /* Write. */
+        struct { char *string; struct Node *var; } writenode;
+
+        /* Read. */
+        struct { struct Node *var; } readnode;
+
         /* Literals. */
         int intval;
         double realval;
@@ -75,13 +86,6 @@ typedef struct Node {
 
         /* Relational op. */
         struct { RelOp op; struct Node *left; struct Node *right; } relop;
-
-        /* Write. */
-        struct { char *string; struct Node *var } writenode;
-
-        /* Read. */
-        struct { struct Node *var; } readnode;
-
     };
 } Node;
 
@@ -96,7 +100,7 @@ typedef struct Node {
 void add_child(Node *n, Node *child);
 
 /**
- * @brief Adds a valid type for decl nodes.
+ * @brief Adds a valid type for variables in decl nodes.
  *
  * @param cmds Vector of pointers to decl nodes.
  * @param length Vector length.
@@ -119,7 +123,7 @@ Node *join_blocks(Node *n1, Node *n2);
 /**
  * @brief Creates a node of type NODE_BLOCK.
  *
- * @param cmds Vector of declaration nodes.
+ * @param cmds Vector of action nodes.
  * @param count Number of items in the vector.
  *
  * @return A pointer to the created node.
@@ -129,13 +133,13 @@ Node *make_block(Node **cmds, int count);
 /**
  * @brief Creates a node of type NODE_DECL.
  *
- * @param t Variable type.
+ * @param type Variable type.
  * @param name Variable name.
  * @param size Vector size (used only if it is a vector type).
  *
  * @return A pointer to the created node.
  */
-Node *make_decl(Types t, const char *name, int size);
+Node *make_decl(Types type, const char *name, int size);
 
 /**
  * @brief Creates a node of type NODE_ASSIGN.

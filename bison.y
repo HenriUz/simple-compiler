@@ -1,66 +1,49 @@
 %{
     #include "ast.h"
     #include "types.h"
+    #include "variables.h"
 
-    typedef struct LNode {
-        Variable *variable;
-        struct LNode *next;
-    } LNode;
-
-    typedef struct List {
-        LNode *start;
-    } List;
-
-
-    /* Funções para a lista de variáveis. */
     List *variables;
-    List *initialize();
-    void insert(Variable *data);
-    Variable *search(char *name);
-    void clean();
-
-    /* Funções para reduzir as linhas de código dentro da gramática. */
-    Variable *create(char *name, Types type, int size);
 
     int yylex(void);
     void yyerror(const char *s);
 %}
 
-/* Definição dos tipos possíveis para os terminais e não-terminais. */
+/* Definition of possible types for terminals and non-terminals. */
 
 %union {
-    int inteiro;
+    int integer;
     double real;
-    char *cadeia;
+    char *string;
 
     Node *node;
 
-    RelOp op;
+    RelOp operand;
     Types type;
     Flex flex;
     Variable var;
 }
 
-/* Definição dos não-terminais. */
+/* Definition of non-terminals. */
 
 %type <node> start program statements names algorithm commands assignment input input_vars output out_string if loop expression lower middle high complex relational high_relational
 
 %type <type> type
-%type <op> r_operators b_operators
+%type <operand> r_operators b_operators
 
-/* Definição dos terminais. */
+/* Definition of terminals. */
 
-%token PROGRAMA FIMPROG ":=" LEIA ESCREVA SE ENTAO SENAO FIMSE ENQUANTO FACA FIMENQ
+%token PROGRAMA FIMPROG ATRIB LEIA ESCREVA SE ENTAO SENAO FIMSE ENQUANTO FACA FIMENQ
 
-%token <inteiro> N_INT
+%token <integer> N_INT
 %token <real> N_REAL
-%token <cadeia> STRING
+%token <string> STRING
 
-%token <op> NAO MAQ MAI MEQ MEI IGU DIF OU E
+%token <operand> NAO MAQ MAI MEQ MEI IGU DIF OU E
 %token <type> INTEIRO REAL LISTAINT LISTAREAL
 %token <flex> VAR_NAME
 
-/* Gramática. */
+/* Grammar. */
 
 %%
 
@@ -68,6 +51,7 @@ start:
     PROGRAMA program FIMPROG
     {
         execute_node($2);
+        free_node($2);
         $$ = $2;
     };
 
@@ -137,11 +121,11 @@ commands:
     }
     | loop
     {
-        $$ = $1
+        $$ = $1;
     };
 
 assignment:
-    VAR_NAME ":=" expression
+    VAR_NAME ATRIB expression
     {
         $$ = make_assign($3, make_var($1.name, $1.length));
     };
@@ -183,7 +167,7 @@ out_string:
     }
     | STRING ',' VAR_NAME
     {
-        $$ = make_write($1, make_var($1.name, $1.length));
+        $$ = make_write($1, make_var($3.name, $3.length));
     };
 
 if:
@@ -273,7 +257,7 @@ relational:
 high_relational:
     NAO '(' relational ')'
     {
-        $$ = make_relop($1, $3 NULL);
+        $$ = make_relop($1, $3 ,NULL);
     }
     | '(' relational ')'
     {
@@ -297,79 +281,13 @@ b_operators:
     | E;
 %%
 
-/* Implementação das funções auxiliares (declaradas no início do arquivo). */
-
-List *initialize() {
-    List *l = (List *)malloc(sizeof(List));
-    if (!l) return NULL;
-
-    l->start = NULL;
-    return l;
-}
-
-void insert(Variable *data) {
-    if (!variables) return;
-
-    LNode *n = (LNode *)malloc(sizeof(LNode));
-    if (!n) return;
-
-    n->variable = data;
-    n->next = variables->start;
-    variables->start = n;
-}
-
-Variable *search(char *name) {
-    if (!variables) return NULL;
-
-    LNode *n = variables->start;
-    while (n && strcmp(n->variable->name, name) != 0) {
-        n = n->next;
-    }
-
-    if (!n) return NULL;
-    return n->variable;
-}
-
-void clean() {
-    if (!variables) return;
-
-    while (variables->start) {
-        LNode *n = variables->start;
-
-        if (n->variable) {
-            free(n->variable->name);
-            if (n->variable->initialized == TRUE) {
-                free(n->variable->data);
-            }
-            free(n->variable);
-        }
-
-        variables->start = n->next;
-        free(n);
-    }
-
-    free(variables);
-    variables = NULL;
-}
-
-Variable *create(char *name, Types type, int size) {
-    Variable *v = (Variable *)malloc(sizeof(Variable));
-    if (!v) return NULL;
-
-    v->name = strdup(name);
-    v->type = type;
-    v->initialized = FALSE;
-    v->size = size;
-    v->data = NULL;
-
-    return v;
-}
-
-/* Implementação das funções padrões. */
+/* Implementation of standard functions. */
 
 void yyerror(const char *s) {
-    fprintf(stderr, "O seguinte erro ocorreu: %s.\n", s);
-    clean();
+    fprintf(stderr, "An error has occurred: %s.\n", s);
+
+    clean(variables);
+    free(variables);
 }
 
 int main() {
@@ -377,6 +295,8 @@ int main() {
     if (!variables) return 1;
 
     yyparse();
-    clean();
+
+    clean(variables);
+    free(variables);
     return 0;
 }

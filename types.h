@@ -1,5 +1,5 @@
-#ifndef TYPES
-#define TYPES
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,34 +23,59 @@ typedef enum RelOp {
     R_MAQ, R_MAI, R_MEQ, R_MEI, R_IGU, R_DIF, R_NAO, R_OU, R_E,
 } RelOp;
 
-/*
-Tipos possíveis para as variáveis do programa.
-*/
-typedef enum {
+/**
+ * @enum Types
+ *
+ * @brief Represents the possible types for variables.
+ *
+ * The T_UNTYPED type is only used by bison because of multiple declarations on a single line.
+ */
+typedef enum  Types {
     T_INTEIRO,
     T_REAL,
     T_LISTAINT,
     T_LISTAREAL,
-    T_UNTYPED, // Usado somente pelo bison.
+    T_UNTYPED,
 } Types;
 
-/*
-Estrutura para representar uma variável. O dado só deve ser alocado quando for atribuído, e deve ser convertido para o tipo por meio do "cast".
-*/
-typedef struct {
-    char *name;
-    Types type;
-    int initialized; // Indica se a variável já foi inicializada.
-    int size; // Utilizado apenas em casos de lista, pois representa o tamanho delas.
-    void *data; // O dado em si.
-} Variable;
-
-/*
-Estrutura auxiliar para o Flex retornar o nome de uma variável, e no caso de listas, o tamanho delas também.
-*/
-typedef struct {
+/**
+ * @struct Flex
+ *
+ * @brief Helper for passing the VAR_NAME token from flex to bison.
+ *
+ * The length field is used to pass the size of the vector, in the case of declarations, and the index being accessed in other cases.
+ */
+typedef struct  Flex {
     char *name;
     int length;
 } Flex;
+
+/**
+ * @struct Variable
+ *
+ * @brief Represents a variable.
+ *
+ * The data field should only be used if the initialized field is 1, and it must be converted to the type in question.
+ *
+ * The size field is only used if the variable is a vector, as it indicates the allocated size.
+ */
+typedef struct Variable {
+    char *name;
+    Types type;
+    int initialized;
+    int size;
+    void *data;
+} Variable;
+
+/**
+ * @brief Initializes a Variable structure.
+ *
+ * @param name Variable name.
+ * @param type Variable type.
+ * @param size Variable size (only if it's a vector).
+ *
+ * @return A pointer to the created structure.
+ */
+Variable *create_var(char *name, Types type, int size);
 
 #endif
