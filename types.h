@@ -44,10 +44,13 @@ typedef enum  Types {
  * @brief Helper for passing the VAR_NAME token from flex to bison.
  *
  * The length field is used to pass the size of the vector, in the case of declarations, and the index being accessed in other cases.
+ *
+ * The variable field has the same function as length, but it is used when the index provided is a variable.
  */
 typedef struct  Flex {
     char *name;
     int length;
+    char *variable;
 } Flex;
 
 /**

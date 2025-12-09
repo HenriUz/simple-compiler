@@ -83,12 +83,50 @@ names:
     VAR_NAME ',' names
     {
         $$ = $3;
-        add_child($$, make_decl(T_UNTYPED, $1.name, $1.length));
+
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "names state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "names state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "names state: unsupported variable type.\n");
+            }
+        }
+        add_child($$, make_decl(T_UNTYPED, $1.name, index));
     }
     | VAR_NAME
     {
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "names state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "names state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "names state: unsupported variable type.\n");
+            }
+        }
+
         Node **cmds = (Node **)malloc(sizeof(Node *));
-        cmds[0] = make_decl(T_UNTYPED, $1.name, $1.length);
+        cmds[0] = make_decl(T_UNTYPED, $1.name, index);
 
         $$ = make_block(cmds, 1);
     };
@@ -132,7 +170,26 @@ commands:
 assignment:
     VAR_NAME ATRIB expression
     {
-        $$ = make_assign($3, make_var($1.name, $1.length));
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "assignment state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "assignment state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "assignment state: unsupported variable type.\n");
+            }
+        }
+
+        $$ = make_assign($3, make_var($1.name, index));
     };
 
 input:
@@ -145,12 +202,51 @@ input_vars:
     VAR_NAME ',' input_vars
     {
         $$ = $3;
-        add_child($$, make_read(make_var($1.name, $1.length)));
+
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "input_vars state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "input_vars state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "input_vars state: unsupported variable type.\n");
+            }
+        }
+
+        add_child($$, make_read(make_var($1.name, index)));
     }
     | VAR_NAME
     {
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "input_vars state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "input_vars state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "input_vars state: unsupported variable type.\n");
+            }
+        }
+
         Node **cmds = (Node **)malloc(sizeof(Node *));
-        cmds[0] = make_read(make_var($1.name, $1.length));
+        cmds[0] = make_read(make_var($1.name, index));
 
         $$ = make_block(cmds, 1);
     };
@@ -164,7 +260,26 @@ output:
 out_string:
     VAR_NAME
     {
-        $$ = make_write(NULL, make_var($1.name, $1.length));
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "out_string state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "out_string state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "out_string state: unsupported variable type.\n");
+            }
+        }
+
+        $$ = make_write(NULL, make_var($1.name, index));
     }
     | STRING
     {
@@ -172,7 +287,26 @@ out_string:
     }
     | STRING ',' VAR_NAME
     {
-        $$ = make_write($1, make_var($3.name, $3.length));
+        int index = $3.length;
+        if ($3.variable) {
+            Variable *v = search(variables, $3.variable);
+            if (!v) {
+                fprintf(stderr, "out_string state: undeclared variable '%s'.\n", $3.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "out_string state: variable '%s' not initialized.\n", $3.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "out_string state: unsupported variable type.\n");
+            }
+        }
+
+        $$ = make_write($1, make_var($3.name, index));
     };
 
 if:
@@ -236,7 +370,26 @@ high:
     }
     | VAR_NAME
     {
-        $$ = make_var($1.name, $1.length);
+        int index = $1.length;
+        if ($1.variable) {
+            Variable *v = search(variables, $1.variable);
+            if (!v) {
+                fprintf(stderr, "out_string state: undeclared variable '%s'.\n", $1.variable);
+                exit(1);
+            }
+            if (!v->initialized) {
+                fprintf(stderr, "out_string state: variable '%s' not initialized.\n", $1.variable);
+                exit(1);
+            }
+
+            if (v->type == T_INTEIRO || v->type == T_REAL) {
+                index = *(int *)v->data;
+            } else {
+                fprintf(stderr, "out_string state: unsupported variable type.\n");
+            }
+        }
+
+        $$ = make_var($1.name, index);
     }
     | '(' lower ')'
     {
