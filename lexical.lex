@@ -17,7 +17,8 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 INT         {DIGIT}+
 REAL        {DIGIT}+"."{DIGIT}+
 STRING      \"([^\"\n])*\"
-LISTA_DECL  {ID}"["{INT}"]"
+LISTA_NUM   {ID}"["{INT}"]"
+LISTA_VAR   {ID}"["{ID}"]"
 COMMENT     \{[^}\n]*\}
 
 %%
@@ -61,17 +62,35 @@ COMMENT     \{[^}\n]*\}
 "("         { if(DEBUG_LEX) printf("[LEX] ( \n"); return '('; }
 ")"         { if(DEBUG_LEX) printf("[LEX] ) \n"); return ')'; }
 
-{LISTA_DECL} {
+{LISTA_NUM} {
     char *text = strdup(yytext);
     char *name = strtok(text, "[");
     char *size = strtok(NULL, "]");
 
     yylval.flex.name = strdup(name);
     yylval.flex.length = atoi(size);
+    yylval.flex.variable = NULL;
 
     if(DEBUG_LEX)
         printf("[LEX] VAR_NAME (lista) name=%s size=%d\n",
                yylval.flex.name, yylval.flex.length);
+
+    free(text);
+    return VAR_NAME;
+}
+
+{LISTA_VAR} {
+    char *text = strdup(yytext);
+    char *name = strtok(text, "[");
+    char *size_var = strtok(NULL, "]");
+
+    yylval.flex.name = strdup(name);
+    yylval.flex.length = 0;
+    yylval.flex.variable = strdup(size_var);
+
+    if(DEBUG_LEX)
+        printf("[LEX] VAR_NAME (lista) name=%s size_var=%s\n",
+               yylval.flex.name, yylval.flex.variable);
 
     free(text);
     return VAR_NAME;
@@ -97,8 +116,11 @@ COMMENT     \{[^}\n]*\}
 }
 
 {ID} {
-    yylval.string = strdup(yytext);
-    if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.string);
+    yylval.flex.name = strdup(yytext);
+    yylval.flex.length = 0;
+    yylval.flex.variable = NULL;
+    
+    if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.flex.name);
     return VAR_NAME;
 }
 
