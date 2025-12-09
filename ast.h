@@ -207,6 +207,15 @@ Node *make_int(int v);
 Node *make_real(double v);
 
 /**
+ * @brief Calculates the index stored in the Index structure.
+ *
+ * @param index Index structure.
+ *
+ * @return The calculated index.
+ */
+int eval_index(Index index);
+
+/**
  * @brief Creates a node of type NODE_VAR.
  *
  * @param name Variable name.

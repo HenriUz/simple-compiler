@@ -167,6 +167,23 @@ Node *make_real(double v) {
     return n;
 }
 
+int eval_index(Index index) {
+    if (index.type == INTEGER) {
+        return index.value.integer;
+    } else {
+        Variable *var = search(variables, index.value.name);
+        if (!var) {
+            fprintf(stderr, "eval_index(): undeclared variable '%s'.\n", index.value.name);
+            exit(1);
+        }
+        if (!var->initialized) {
+            fprintf(stderr, "eval_index(): variable '%s' not initialized.\n", index.value.name);
+            exit(1);
+        }
+        return *(int *)var->data;
+    }
+}
+
 Node *make_var(const char *name, Index index) {
     Node *n = alloc_node(NODE_VAR);
     n->var.name = strdup(name);
@@ -399,23 +416,7 @@ EvalResult eval_node(Node *n) {
                 r.v.d = *(double *)v->data;
                 return r;
             } else if (v->type == T_LISTAINT || v->type == T_LISTAREAL) {
-                int index;
-                if (n->var.index.type == INTEGER) {
-                    index = n->var.index.value.integer;
-                } else {
-                    Variable *var_index = search(variables, n->var.index.value.name);
-                    if (!var_index) {
-                        fprintf(stderr, "eval_node(): undeclared variable '%s'.\n", n->var.index.value.name);
-                        exit(1);
-                    }
-                    if (!var_index->initialized) {
-                        fprintf(stderr, "eval_node(): variable '%s' not initialized.\n", n->var.index.value.name);
-                        exit(1);
-                    }
-
-                    index = *(int *)var_index->data;
-                }
-
+                int index = eval_index(n->var.index);
                 if (index < 0 || index >= v->size) {
                     fprintf(stderr, "eval_node(): index out of range.\n");
                     exit(1);
@@ -515,23 +516,7 @@ void execute_node(Node *n) {
                 exit(1);
             }
 
-            int index;
-            if (n->assign.var->var.index.type == INTEGER) {
-                index = n->assign.var->var.index.value.integer;
-            } else {
-                Variable *var_index = search(variables, n->assign.var->var.index.value.name);
-                if (!var_index) {
-                    fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.index.value.name);
-                    exit(1);
-                }
-                if (!var_index->initialized) {
-                    fprintf(stderr, "execute_node(): variable '%s' not initialized.\n", n->assign.var->var.index.value.name);
-                    exit(1);
-                }
-
-                index = *(int *)var_index->data;
-            }
-
+            int index = eval_index(n->assign.var->var.index);
             if (!set_variable_value_from_eval(v, val, index)) {
                 fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
@@ -596,23 +581,7 @@ void execute_node(Node *n) {
                 scanf("%f", &val.v.d);
             }
 
-            int index;
-            if (n->readnode.var->var.index.type == INTEGER) {
-                index = n->readnode.var->var.index.value.integer;
-            } else {
-                Variable *var_index = search(variables, n->readnode.var->var.index.value.name);
-                if (!var_index) {
-                    fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->readnode.var->var.index.value.name);
-                    exit(1);
-                }
-                if (!var_index->initialized) {
-                    fprintf(stderr, "execute_node(): variable '%s' not initialized.\n", n->readnode.var->var.index.value.name);
-                    exit(1);
-                }
-
-                index = *(int *)var_index->data;
-            }
-
+            int index = eval_index(n->readnode.var->var.index);
             if (!set_variable_value_from_eval(v, val, index)) {
                 fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
