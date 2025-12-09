@@ -39,8 +39,9 @@ void add_child(Node *n, Node *child) {
         exit(1);
     }
 
-    memcpy(new_cmds, n->block.cmds, sizeof(Node *) * n->block.count);
-    new_cmds[(n->block.count)++] = child;
+    new_cmds[0] = child;
+    memcpy(new_cmds + 1, n->block.cmds, sizeof(Node *) * n->block.count);
+    n->block.count++;
 
     free(n->block.cmds);
     n->block.cmds = new_cmds;
@@ -191,7 +192,11 @@ Node *make_relop(RelOp op, Node *left, Node *right) {
 
 Node *make_write(const char *string, Node *var) {
     Node *n = alloc_node(NODE_WRITE);
-    n->writenode.string = strdup(string);
+    if (!string) {
+        n->writenode.string = NULL;
+    } else {
+        n->writenode.string = strdup(string);
+    }
     n->writenode.var = var;
     return n;
 }
@@ -560,6 +565,7 @@ void execute_node(Node *n) {
                 fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
             }
+            break;
         }
         default:
             fprintf(stderr, "execute_node(): unsupported node type '%d'.\n", n->type);

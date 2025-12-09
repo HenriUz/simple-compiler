@@ -5,6 +5,7 @@
 
     List *variables;
 
+    extern FILE *yyin;
     int yylex(void);
     void yyerror(const char *s);
 %}
@@ -95,11 +96,15 @@ names:
 algorithm:
     commands algorithm
     {
-        $$ = join_blocks($1, $2);
+        $$ = $2;
+        add_child($$, $1);
     }
     | commands
     {
-        $$ = $1;
+        Node **cmds = (Node **)malloc(sizeof(Node *));
+        cmds[0] = $1;
+
+        $$ = make_block(cmds, 1);
     };
 
 commands:
@@ -290,7 +295,15 @@ void yyerror(const char *s) {
     free(variables);
 }
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc > 1) {
+        yyin = fopen(argv[1], "r");
+        if (!yyin) {
+            perror("fopen() failed");
+            return 1;
+        }
+    }
+
     variables = initialize();
     if (!variables) return 1;
 

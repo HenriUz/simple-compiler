@@ -25,10 +25,10 @@ COMMENT     \{[^}\n]*\}
 
 "PROGRAMA"  { if(DEBUG_LEX) printf("[LEX] PROGRAMA\n"); return PROGRAMA; }
 "FIMPROG"   { if(DEBUG_LEX) printf("[LEX] FIMPROG\n"); return FIMPROG; }
-"INTEIRO"   { if(DEBUG_LEX) printf("[LEX] INTEIRO\n"); yylval.type = N_INT; return INTEIRO; }
-"REAL"      { if(DEBUG_LEX) printf("[LEX] REAL\n"); yylval.type = N_REAL; return REAL; }
-"LISTAINT"  { if(DEBUG_LEX) printf("[LEX] LISTAINT\n"); yylval.type = LISTAINT; return LISTAINT; }
-"LISTAREAL" { if(DEBUG_LEX) printf("[LEX] LISTAREAL\n"); yylval.type = LISTAREAL; return LISTAREAL; }
+"INTEIRO"   { if(DEBUG_LEX) printf("[LEX] INTEIRO\n"); yylval.type = T_INTEIRO; return INTEIRO; }
+"REAL"      { if(DEBUG_LEX) printf("[LEX] REAL\n"); yylval.type = T_REAL; return REAL; }
+"LISTAINT"  { if(DEBUG_LEX) printf("[LEX] LISTAINT\n"); yylval.type = T_LISTAINT; return LISTAINT; }
+"LISTAREAL" { if(DEBUG_LEX) printf("[LEX] LISTAREAL\n"); yylval.type = T_LISTAREAL; return LISTAREAL; }
 
 "LEIA"      { if(DEBUG_LEX) printf("[LEX] LEIA\n"); return LEIA; }
 "ESCREVA"   { if(DEBUG_LEX) printf("[LEX] ESCREVA\n"); return ESCREVA; }
