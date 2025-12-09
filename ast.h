@@ -44,6 +44,22 @@ typedef struct EvalResult {
 } EvalResult;
 
 /**
+ * @struct Index
+ *
+ * @brief Helper for passing indexes in vectors.
+ *
+ * Enables vectors to be accessed with the value of other variables.
+ */
+typedef struct Index {
+    enum IndexType { INTEGER, VARIABLE, } type;
+    union value
+    {
+        int integer;
+        char *name;
+    } value;
+} Index;
+
+/**
  * @struct Node
  *
  * @brief Represents a node in the AST.
@@ -79,7 +95,7 @@ typedef struct Node {
         double realval;
 
         /* Variable acess. */
-        struct { char *name; int index; } var;
+        struct { char *name; Index index; } var;
 
         /* Binary op. */
         struct { BinOp op; struct Node *left; struct Node *right; } binop;
@@ -198,7 +214,7 @@ Node *make_real(double v);
  *
  * @return A pointer to the created node.
  */
-Node *make_var(const char *name, int index);
+Node *make_var(const char *name, Index index);
 
 /**
  * @brief Creates a node of type NODE_BINOP.

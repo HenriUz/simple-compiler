@@ -167,7 +167,7 @@ Node *make_real(double v) {
     return n;
 }
 
-Node *make_var(const char *name, int index) {
+Node *make_var(const char *name, Index index) {
     Node *n = alloc_node(NODE_VAR);
     n->var.name = strdup(name);
     n->var.index = index;
@@ -399,17 +399,34 @@ EvalResult eval_node(Node *n) {
                 r.v.d = *(double *)v->data;
                 return r;
             } else if (v->type == T_LISTAINT || v->type == T_LISTAREAL) {
-                if (n->var.index < 0 || n->var.index >= v->size) {
+                int index;
+                if (n->var.index.type == INTEGER) {
+                    index = n->var.index.value.integer;
+                } else {
+                    Variable *var_index = search(variables, n->var.index.value.name);
+                    if (!var_index) {
+                        fprintf(stderr, "eval_node(): undeclared variable '%s'.\n", n->var.index.value.name);
+                        exit(1);
+                    }
+                    if (!var_index->initialized) {
+                        fprintf(stderr, "eval_node(): variable '%s' not initialized.\n", n->var.index.value.name);
+                        exit(1);
+                    }
+
+                    index = *(int *)var_index->data;
+                }
+
+                if (index < 0 || index >= v->size) {
                     fprintf(stderr, "eval_node(): index out of range.\n");
                     exit(1);
                 }
 
-                if (v->type == T_INTEIRO) {
+                if (v->type == T_LISTAINT) {
                     r.type = T_INTEIRO;
-                    r.v.i = ((int *)v->data)[n->var.index];
+                    r.v.i = ((int *)v->data)[index];
                 } else {
                     r.type = T_REAL;
-                    r.v.d = ((double *)v->data)[n->var.index];
+                    r.v.d = ((double *)v->data)[index];
                 }
                 return r;
             } else {
@@ -498,7 +515,24 @@ void execute_node(Node *n) {
                 exit(1);
             }
 
-            if (!set_variable_value_from_eval(v, val, n->assign.var->var.index)) {
+            int index;
+            if (n->assign.var->var.index.type == INTEGER) {
+                index = n->assign.var->var.index.value.integer;
+            } else {
+                Variable *var_index = search(variables, n->assign.var->var.index.value.name);
+                if (!var_index) {
+                    fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.index.value.name);
+                    exit(1);
+                }
+                if (!var_index->initialized) {
+                    fprintf(stderr, "execute_node(): variable '%s' not initialized.\n", n->assign.var->var.index.value.name);
+                    exit(1);
+                }
+
+                index = *(int *)var_index->data;
+            }
+
+            if (!set_variable_value_from_eval(v, val, index)) {
                 fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
             }
@@ -550,7 +584,7 @@ void execute_node(Node *n) {
             EvalResult val;
             Variable *v = search(variables, n->readnode.var->var.name);
             if (!v) {
-                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
+                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->readnode.var->var.name);
                 exit(1);
             }
 
@@ -562,7 +596,24 @@ void execute_node(Node *n) {
                 scanf("%f", &val.v.d);
             }
 
-            if (!set_variable_value_from_eval(v, val, n->readnode.var->var.index)) {
+            int index;
+            if (n->readnode.var->var.index.type == INTEGER) {
+                index = n->readnode.var->var.index.value.integer;
+            } else {
+                Variable *var_index = search(variables, n->readnode.var->var.index.value.name);
+                if (!var_index) {
+                    fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->readnode.var->var.index.value.name);
+                    exit(1);
+                }
+                if (!var_index->initialized) {
+                    fprintf(stderr, "execute_node(): variable '%s' not initialized.\n", n->readnode.var->var.index.value.name);
+                    exit(1);
+                }
+
+                index = *(int *)var_index->data;
+            }
+
+            if (!set_variable_value_from_eval(v, val, index)) {
                 fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
                 exit(1);
             }

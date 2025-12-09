@@ -109,7 +109,7 @@ COMMENT     \{[^}\n]*\}
 }
 
 {STRING} {
-    strcpy(yylval.string, yytext + 1);
+    yylval.string = strdup(yytext + 1);
     yylval.string[strlen(yytext) - 2] = '\0';
     if(DEBUG_LEX) printf("[LEX] STRING = %s\n", yylval.string);
     return STRING;
@@ -119,7 +119,7 @@ COMMENT     \{[^}\n]*\}
     yylval.flex.name = strdup(yytext);
     yylval.flex.length = 0;
     yylval.flex.variable = NULL;
-    
+
     if(DEBUG_LEX) printf("[LEX] VAR_NAME (simples) = %s\n", yylval.flex.name);
     return VAR_NAME;
 }
