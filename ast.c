@@ -260,6 +260,7 @@ void free_node(Node *n) {
                 free(n->writenode.string);
             }
             free_node(n->writenode.var);
+            break;
         case NODE_READ:
             free_node(n->readnode.var);
             break;

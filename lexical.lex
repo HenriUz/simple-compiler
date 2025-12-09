@@ -90,7 +90,8 @@ COMMENT     \{[^}\n]*\}
 }
 
 {STRING} {
-    yylval.string = strdup(yytext);
+    strcpy(yylval.string, yytext + 1);
+    yylval.string[strlen(yytext) - 2] = '\0';
     if(DEBUG_LEX) printf("[LEX] STRING = %s\n", yylval.string);
     return STRING;
 }
