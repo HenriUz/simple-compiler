@@ -29,7 +29,7 @@ static Node *alloc_node(NodeType t) {
 void add_child(Node *n, Node *child) {
     if (!n || !child) return;
     if (n->type != NODE_BLOCK) {
-        fprintf(stderr, "add_child(): invalid node type.\n");
+        fprintf(stderr, "add_child(): the node n must be of type NODE_BLOCK.\n");
         exit(1);
     }
 
@@ -63,7 +63,7 @@ Node *join_blocks(Node *n1, Node *n2) {
         exit(1);
     }
     if (n1->type != NODE_BLOCK || n2->type != NODE_BLOCK) {
-        fprintf(stderr, "join_blocks(): invalid nodes type.\n");
+        fprintf(stderr, "join_blocks(): the nodes must be of type NODE_BLOCK.\n");
         exit(1);
     }
 
@@ -87,7 +87,7 @@ Node *join_blocks(Node *n1, Node *n2) {
 
 Node *make_block(Node **cmds, int count) {
     if (!cmds) {
-        fprintf(stderr, "make_block(): cmds must exist.\n");
+        fprintf(stderr, "make_block(): the cmds parameter must exist.\n");
         exit(1);
     }
 
@@ -112,7 +112,7 @@ Node *make_assign(Node *expr, Node *var) {
         exit(1);
     }
     if (var->type != NODE_VAR) {
-        fprintf(stderr, "make_assing(): incompatible node type.\n");
+        fprintf(stderr, "make_assing(): the node var must be of type NODE_VAR.\n");
         exit(1);
     }
 
@@ -128,7 +128,7 @@ Node *make_if(Node *cond, Node *then_block, Node *else_block) {
         exit(1);
     }
     if (cond->type != NODE_RELOP) {
-        fprintf(stderr, "make_if(): incompatible node (cond) type.\n");
+        fprintf(stderr, "make_if(): the node cond must be of type NODE_RELOP.\n");
         exit(1);
     }
 
@@ -145,7 +145,7 @@ Node *make_while(Node *cond, Node *body) {
         exit(1);
     }
     if (cond->type != NODE_RELOP) {
-        fprintf(stderr, "make_while(): incompatible node (cond) type.\n");
+        fprintf(stderr, "make_while(): the node cond must be of type NODE_RELOP.\n");
         exit(1);
     }
 
@@ -224,7 +224,7 @@ Node *make_read(Node *var) {
         exit(1);
     }
     if (var->type != NODE_VAR) {
-        fprintf(stderr, "make_read(): incompatible node type.\n");
+        fprintf(stderr, "make_read(): the node var must be of type NODE_VAR.\n");
         exit(1);
     }
 
@@ -399,11 +399,11 @@ EvalResult eval_node(Node *n) {
         {
             Variable *v = search(variables, n->var.name);
             if (!v) {
-                fprintf(stderr, "eval_node(): undeclared variable '%s'.\n", n->var.name);
+                fprintf(stderr, "eval_node() - NODE_VAR: undeclared variable '%s'.\n", n->var.name);
                 exit(1);
             }
             if (!v->initialized) {
-                fprintf(stderr, "eval_node(): variable '%s' not initialized.\n", n->var.name);
+                fprintf(stderr, "eval_node() - NODE_VAR: variable '%s' not initialized.\n", n->var.name);
                 exit(1);
             }
 
@@ -418,7 +418,7 @@ EvalResult eval_node(Node *n) {
             } else if (v->type == T_LISTAINT || v->type == T_LISTAREAL) {
                 int index = eval_index(n->var.index);
                 if (index < 0 || index >= v->size) {
-                    fprintf(stderr, "eval_node(): index out of range.\n");
+                    fprintf(stderr, "eval_node() - NODE_VAR: index out of range.\n");
                     exit(1);
                 }
 
@@ -431,7 +431,7 @@ EvalResult eval_node(Node *n) {
                 }
                 return r;
             } else {
-                fprintf(stderr, "eval_node(): unsupported variable type.\n");
+                fprintf(stderr, "eval_node() - NODE_VAR: unsupported variable type.\n");
                 exit(1);
             }
         }
@@ -512,13 +512,13 @@ void execute_node(Node *n) {
             EvalResult val = eval_node(n->assign.expr);
             Variable *v = search(variables, n->assign.var->var.name);
             if (!v) {
-                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->assign.var->var.name);
+                fprintf(stderr, "execute_node() - NODE_ASSIGN: undeclared variable '%s'.\n", n->assign.var->var.name);
                 exit(1);
             }
 
             int index = eval_index(n->assign.var->var.index);
             if (!set_variable_value_from_eval(v, val, index)) {
-                fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
+                fprintf(stderr, "execute_node() - NODE_ASSIGN: assignment failed (unsupported type).\n");
                 exit(1);
             }
             break;
@@ -569,7 +569,7 @@ void execute_node(Node *n) {
             EvalResult val;
             Variable *v = search(variables, n->readnode.var->var.name);
             if (!v) {
-                fprintf(stderr, "execute_node(): undeclared variable '%s'.\n", n->readnode.var->var.name);
+                fprintf(stderr, "execute_node() - NODE_READ: undeclared variable '%s'.\n", n->readnode.var->var.name);
                 exit(1);
             }
 
@@ -583,7 +583,7 @@ void execute_node(Node *n) {
 
             int index = eval_index(n->readnode.var->var.index);
             if (!set_variable_value_from_eval(v, val, index)) {
-                fprintf(stderr, "execute_node(): assignment failed (unsupported type).\n");
+                fprintf(stderr, "execute_node() - NODE_READ: assignment failed (unsupported type).\n");
                 exit(1);
             }
             break;
